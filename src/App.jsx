@@ -1,19 +1,27 @@
 import { useState, useEffect } from 'react'
 import Die from "./Die"
+import Scoreboard from "./Scoreboard"
 import {nanoid} from "nanoid"
 import Confetti from "react-confetti"
 
 function App() {
+  const highScore = () => Number(window.localStorage.getItem("highScore")) || 0;
 
   const [dice, setDice] = useState(allNewDice())
   const [tenzies, setTenzies] = useState(false)
-  
+  const [rolls, setRolls] = useState(1)
+  const [score, setScore] = useState(highScore())
+
+  // This is checking to see if the user has won "tenzies" (all dice are the same)
   useEffect(() => {
       const allHeld = dice.every(die => die.isHeld)
       const firstValue = dice[0].value
       const allSameValue = dice.every(die => die.value === firstValue)
       if (allHeld && allSameValue) {
-          setTenzies(true)
+        score === 0 ? setScore(rolls) : setScore(Math.min(rolls, score));
+        console.log(score);
+        window.localStorage.setItem("highScore", score);
+        setTenzies(true);
       }
   }, [dice])
 
@@ -35,13 +43,15 @@ function App() {
   
   function rollDice() {
       if(!tenzies) {
-          setDice(oldDice => oldDice.map(die => {
-              return die.isHeld ? 
-                  die :
-                  generateNewDie()
-          }))
+        setRolls(roll => roll + 1);
+        setDice(oldDice => oldDice.map(die => {
+            return die.isHeld ? 
+                die :
+                generateNewDie()
+      }))
       } else {
           setTenzies(false)
+          setRolls(1)
           setDice(allNewDice())
       }
   }
@@ -64,11 +74,11 @@ function App() {
   ))
   
   return (
+    <>
       <main>
-          {tenzies && <Confetti />}
+          {tenzies && <Confetti numberOfPieces='400' recycle={rolls === score? true : false} />}
           <h1 className="title">Tenzies</h1>
-          <p className="instructions">Roll until all dice are the same. 
-          Click each die to freeze it at its current value between rolls.</p>
+          <p className="instructions">Roll the dice until you get all 10 dice showing the same number. Click the die to hold onto it. See if you can beat your high score!</p>
           <div className="dice-container">
               {diceElements}
           </div>
@@ -78,7 +88,9 @@ function App() {
           >
               {tenzies ? "New Game" : "Roll"}
           </button>
+        <Scoreboard rolls={rolls} highScore={score} />
       </main>
+    </>
   )
 }
 
